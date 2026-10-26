@@ -1,7 +1,7 @@
 # EID Connect Examples: Emirates ID integration samples
 
 > **Want one of these running in your business?** We install, customise and support EID Connect across the UAE.
-> **[Get a commercial licence or free trial →](./COMMERCIAL.md)** · [info@elephantclock.tech](mailto:info@elephantclock.tech?subject=EID%20Connect) · [WhatsApp +971 50 702 2916](https://wa.me/971507022916)
+> **[Get a commercial licence or free trial →](./COMMERCIAL.md)** · [info@elephantclock.ae](mailto:info@elephantclock.ae?subject=EID%20Connect) · [WhatsApp +971 50 702 2916](https://wa.me/971507022916)
 
 Three ready-to-run examples of reading a UAE Emirates ID into a web app. Each is a
 single HTML file with no build step and no framework.
