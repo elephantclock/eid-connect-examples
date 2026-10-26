@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Emirates ID Visitor Kiosk</title>
+  <link rel="stylesheet" href="../lib/style.css" />
+  <style>
+    .badge { display: none; margin-top: 16px; border: 2px dashed var(--gold); border-radius: 12px; padding: 16px; gap: 16px; align-items: center; }
+    .badge.show { display: flex; }
+    .badge strong { font-size: 1.2rem; display: block; }
+    @media print { body * { visibility: hidden; } .badge, .badge * { visibility: visible; } .badge { position: absolute; top: 0; left: 0; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Visitor check-in</h1>
+  <p class="sub">Visitors tap their Emirates ID, choose who they are meeting, and get a badge. The log keeps a masked ID only.</p>
+
+  <div class="status" id="status" data-state="connecting"><span class="dot"></span><span id="status-text">Connecting to reader…</span></div>
+
+  <div class="card">
+    <div class="grid">
+      <div><label for="host">Visiting</label>
+        <select id="host"><option>Reception</option><option>Finance</option><option>HR</option><option>Operations</option></select>
+      </div>
+      <div><label for="purpose">Purpose</label><input id="purpose" value="Meeting" /></div>
+    </div>
+    <div class="badge" id="badge">
+      <img class="photo" id="badge-photo" alt="" />
+      <div>
+        <small>VISITOR</small>
+        <strong id="badge-name"></strong>
+        <span id="badge-meta"></span>
+      </div>
+    </div>
+    <div style="margin-top:16px; display:flex; gap:10px">
+      <button id="print" disabled>Print badge</button>
+    </div>
+  </div>
+
+  <h2 style="font-size:1.1rem; margin-top:28px">Today's log</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Time</th><th>Name</th><th>ID (masked)</th><th>Visiting</th></tr></thead>
+      <tbody id="log"><tr><td colspan="4" style="color:var(--muted)">No visitors yet</td></tr></tbody>
+    </table>
+  </div>
+
+  <p class="hint">No reader? Run <code>npx @elephantclock/eid-connect-mock</code> and press <kbd>c</kbd>.</p>
+  <p class="footer">Built with <a href="https://elephantclock.github.io/eid-connect/">EID Connect</a> by ElephantClock. Free for personal and educational use. <a href="https://elephantclock.github.io/eid-connect/#commercial">Commercial licence</a>.</p>
+</main>
+
+<script type="module">
+  import { connect } from '../lib/eid-connect.js';
+
+  const url = new URLSearchParams(location.search).get('bridge') || 'http://localhost:8080';
+  const $ = (id) => document.getElementById(id);
+  const labels = { connecting: 'Connecting to reader…', connected: 'Reader ready - tap a card', disconnected: 'Reader service not reachable - retrying', error: 'Reader service error' };
+
+  // Data minimisation: never keep the full ID number in the log
+  const mask = (id) => (id ? id.slice(0, 4) + '****-*******-' + id.slice(-1) : '-');
+  let first = true;
+
+  connect({
+    url,
+    onStatus: (s) => { $('status').dataset.state = s; $('status-text').textContent = labels[s]; },
+    onCard: (card) => {
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      $('badge-name').textContent = card.nameEnglish;
+      $('badge-meta').textContent = `${$('host').value} · ${time}`;
+      $('badge-photo').src = card.photoDataUrl ?? '';
+      $('badge').classList.add('show');
+      $('print').disabled = false;
+
+      if (first) { $('log').innerHTML = ''; first = false; }
+      const row = $('log').insertRow(0);
+      for (const v of [time, card.nameEnglish, mask(card.idNumber), $('host').value]) row.insertCell().textContent = v;
+    },
+  });
+
+  $('print').addEventListener('click', () => window.print());
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Emirates ID Form Auto-fill</title>
+  <link rel="stylesheet" href="../lib/style.css" />
+</head>
+<body>
+<main>
+  <h1>Customer registration</h1>
+  <p class="sub">Tap an Emirates ID on the reader and the form fills itself. No re-typing.</p>
+
+  <div class="status" id="status" data-state="connecting"><span class="dot"></span><span id="status-text">Connecting to reader…</span></div>
+
+  <form class="card" id="form" autocomplete="off">
+    <div style="display:flex; gap:18px; align-items:flex-start; margin-bottom:18px">
+      <img class="photo" id="photo" alt="Cardholder photo" />
+      <div style="flex:1" class="grid">
+        <div><label for="nameEnglish">Full name (English)</label><input id="nameEnglish" name="nameEnglish" /></div>
+        <div><label for="nameArabic">Full name (Arabic)</label><input id="nameArabic" name="nameArabic" dir="rtl" /></div>
+      </div>
+    </div>
+    <div class="grid">
+      <div><label for="idNumber">Emirates ID number</label><input id="idNumber" name="idNumber" /></div>
+      <div><label for="nationality">Nationality</label><input id="nationality" name="nationality" /></div>
+      <div><label for="gender">Gender</label><input id="gender" name="gender" /></div>
+      <div><label for="dateOfBirth">Date of birth</label><input id="dateOfBirth" name="dateOfBirth" type="date" /></div>
+      <div><label for="expiryDate">ID expiry</label><input id="expiryDate" name="expiryDate" type="date" /></div>
+      <div><label for="phone">Mobile (typed by staff)</label><input id="phone" name="phone" inputmode="tel" /></div>
+    </div>
+    <div style="margin-top:20px; display:flex; gap:10px">
+      <button type="submit">Register</button>
+      <button type="reset" class="ghost" id="reset">Clear</button>
+      <span id="saved" style="align-self:center; color:var(--ok)"></span>
+    </div>
+  </form>
+
+  <p class="hint">No reader? Run <code>npx @elephantclock/eid-connect-mock</code> and press <kbd>c</kbd> to send a sample card.</p>
+  <p class="footer">Built with <a href="https://elephantclock.github.io/eid-connect/">EID Connect</a> by ElephantClock. Free for personal and educational use. <a href="https://elephantclock.github.io/eid-connect/#commercial">Commercial licence</a>.</p>
+</main>
+
+<script type="module">
+  import { connect } from '../lib/eid-connect.js';
+
+  const url = new URLSearchParams(location.search).get('bridge') || 'http://localhost:8080';
+  const $ = (id) => document.getElementById(id);
+  const labels = { connecting: 'Connecting to reader…', connected: 'Reader ready - tap a card', disconnected: 'Reader service not reachable - retrying', error: 'Reader service error' };
+
+  const fields = ['nameEnglish', 'nameArabic', 'idNumber', 'nationality', 'gender', 'dateOfBirth', 'expiryDate'];
+
+  connect({
+    url,
+    onStatus: (s) => { $('status').dataset.state = s; $('status-text').textContent = labels[s]; },
+    onCard: (card) => {
+      for (const f of fields) {
+        const input = $(f);
+        input.value = card[f] ?? '';
+        input.classList.remove('filled');
+        void input.offsetWidth;
+        input.classList.add('filled');
+      }
+      $('photo').src = card.photoDataUrl ?? '';
+      $('phone').focus();
+    },
+  });
+
+  $('form').addEventListener('submit', (e) => { e.preventDefault(); $('saved').textContent = 'Registered (demo only - nothing is stored).'; });
+  $('reset').addEventListener('click', () => { $('saved').textContent = ''; $('photo').removeAttribute('src'); document.querySelectorAll('.filled').forEach((i) => i.classList.remove('filled')); });
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Emirates ID Age Check</title>
+  <link rel="stylesheet" href="../lib/style.css" />
+  <style>
+    .verdict { font-size: 3rem; font-weight: 700; text-align: center; padding: 40px 16px; border-radius: 12px; }
+    .verdict[data-ok="true"] { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+    .verdict[data-ok="false"] { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+    .verdict small { display: block; font-size: 1rem; font-weight: 400; color: var(--muted); margin-top: 6px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Age check</h1>
+  <p class="sub">Answers one question - is this person old enough? - and stores nothing. Name, ID number and photo are never shown or kept.</p>
+
+  <div class="status" id="status" data-state="connecting"><span class="dot"></span><span id="status-text">Connecting to reader…</span></div>
+
+  <div class="card">
+    <div class="grid" style="margin-bottom:18px">
+      <div><label for="min">Minimum age</label>
+        <select id="min"><option>18</option><option selected>21</option><option>16</option></select>
+      </div>
+    </div>
+    <div class="verdict" id="verdict">Tap card<small>Waiting for an Emirates ID</small></div>
+  </div>
+
+  <p class="hint">No reader? Run <code>npx @elephantclock/eid-connect-mock</code> and press <kbd>c</kbd> - sample card three is a minor.</p>
+  <p class="footer">Built with <a href="https://elephantclock.github.io/eid-connect/">EID Connect</a> by ElephantClock. Free for personal and educational use. <a href="https://elephantclock.github.io/eid-connect/#commercial">Commercial licence</a>.</p>
+</main>
+
+<script type="module">
+  import { connect, ageOn } from '../lib/eid-connect.js';
+
+  const url = new URLSearchParams(location.search).get('bridge') || 'http://localhost:8080';
+  const $ = (id) => document.getElementById(id);
+  const labels = { connecting: 'Connecting to reader…', connected: 'Reader ready - tap a card', disconnected: 'Reader service not reachable - retrying', error: 'Reader service error' };
+  let timer;
+
+  connect({
+    url,
+    onStatus: (s) => { $('status').dataset.state = s; $('status-text').textContent = labels[s]; },
+    // Only the date of birth and expiry are used; the card object is discarded after this function.
+    onCard: (card) => {
+      const min = Number($('min').value);
+      const expired = card.expiryDate && card.expiryDate < new Date().toISOString().slice(0, 10);
+      const ok = !expired && ageOn(card.dateOfBirth) >= min;
+      const v = $('verdict');
+      v.dataset.ok = ok;
+      v.innerHTML = ok ? `ALLOWED<small>${min}+ confirmed</small>` : `NOT ALLOWED<small>${expired ? 'Card expired' : `Under ${min}`}</small>`;
+      clearTimeout(timer);
+      timer = setTimeout(() => { delete v.dataset.ok; v.innerHTML = 'Tap card<small>Waiting for an Emirates ID</small>'; }, 6000);
+    },
+  });
+</script>
+</body>
+</html>
